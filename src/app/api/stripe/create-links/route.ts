@@ -39,6 +39,7 @@ export async function POST(req: Request) {
 
           const paymentLink = await stripe.paymentLinks.create({
             line_items: [{ price: price.id, quantity: 1 }],
+            payment_method_types: ['card'],
           });
 
           return { ...product, stripePaymentLink: paymentLink.url };
