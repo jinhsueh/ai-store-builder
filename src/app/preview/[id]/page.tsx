@@ -17,6 +17,7 @@ export default function PreviewPage() {
   const [newProduct, setNewProduct] = useState({ name: '', price: 0, imageUrl: '', description: '' });
   const [uploading, setUploading] = useState(false);
   const [views, setViews] = useState<number | null>(null);
+  const [sales, setSales] = useState<number | null>(null);
 
   useEffect(() => {
     // Try localStorage first (primary storage on Vercel)
@@ -35,10 +36,14 @@ export default function PreviewPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    // Fetch view count
+    // Fetch view count + sales
     fetch(`/api/store/${id}/views`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setViews(data.views); })
+      .catch(() => {});
+    fetch(`/api/store/${id}/orders`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSales(data.salesCount); })
       .catch(() => {});
   }, [id]);
 
@@ -111,6 +116,9 @@ export default function PreviewPage() {
           {views !== null && views > 0 && (
             <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{views} views</span>
           )}
+          {sales !== null && sales > 0 && (
+            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{sales} sales</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -150,6 +158,8 @@ export default function PreviewPage() {
                 { value: 'minimal' as BrandStyle, label: 'Minimal', icon: '◻' },
                 { value: 'vibrant' as BrandStyle, label: 'Vibrant', icon: '◆' },
                 { value: 'luxury' as BrandStyle, label: 'Luxury', icon: '✦' },
+                { value: 'bold' as BrandStyle, label: 'Bold', icon: '■' },
+                { value: 'natural' as BrandStyle, label: 'Natural', icon: '🌿' },
               ]).map(t => (
                 <button
                   key={t.value}

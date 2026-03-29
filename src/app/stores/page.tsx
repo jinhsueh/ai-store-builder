@@ -8,6 +8,8 @@ const STYLE_LABELS: Record<string, string> = {
   minimal: 'Minimal',
   vibrant: 'Vibrant',
   luxury: 'Luxury',
+  bold: 'Bold',
+  natural: 'Natural',
 };
 
 export default function StoresPage() {

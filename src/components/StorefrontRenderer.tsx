@@ -345,6 +345,7 @@ export default function StorefrontRenderer({ config, editable = false, onUpdate 
   }
 
   // ————— LUXURY TEMPLATE —————
+  if (brandStyle === 'luxury') {
   return (
     <div
       className="min-h-screen"
@@ -489,6 +490,189 @@ export default function StorefrontRenderer({ config, editable = false, onUpdate 
       <footer style={{ borderTop: '1px solid #c9a84c22', padding: '40px', textAlign: 'center' }}>
         <p style={{ color: '#c9a84c', fontSize: '14px', letterSpacing: '0.3em', textTransform: 'uppercase' }}>{storeName}</p>
         <p style={{ color: '#333', fontSize: '11px', marginTop: '8px' }}>Powered by StoreAI</p>
+      </footer>
+    </div>
+  );
+  }
+
+  // ————— BOLD TEMPLATE —————
+  if (brandStyle === 'bold') {
+    return (
+      <div className="min-h-screen font-sans" style={{ background: '#f5f0e8' }}>
+        <header style={{ background: primaryColor, padding: '16px 32px' }}>
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <EditableText
+              tag="div"
+              value={storeName.toUpperCase()}
+              onSave={(v) => update({ storeName: v })}
+              editable={editable}
+              style={{ color: '#fff', fontSize: '20px', fontWeight: 900, letterSpacing: '0.05em' }}
+            />
+            <a href="#products" className="text-sm font-black text-white/80 hover:text-white uppercase tracking-wider">Shop</a>
+          </div>
+        </header>
+
+        <section style={{ background: '#000', padding: '80px 32px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '300px', height: '300px', borderRadius: '50%', background: primaryColor, opacity: 0.15 }} />
+          <div className="max-w-6xl mx-auto relative z-10">
+            <EditableText
+              tag="h1"
+              value={storeName}
+              onSave={(v) => update({ storeName: v })}
+              editable={editable}
+              style={{ fontSize: 'clamp(48px, 8vw, 100px)', fontWeight: 900, color: '#fff', lineHeight: 0.95, marginBottom: '16px', textTransform: 'uppercase' }}
+            />
+            <EditableText
+              tag="p"
+              value={tagline}
+              onSave={(v) => update({ tagline: v })}
+              editable={editable}
+              style={{ fontSize: '18px', color: primaryColor, fontWeight: 700, maxWidth: '500px' }}
+            />
+          </div>
+        </section>
+
+        <section id="products" className="py-16 px-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {products.map((product) => (
+                <div key={product.id} className="group relative overflow-hidden" style={{ background: '#fff', border: '3px solid #000' }}>
+                  <div className="flex flex-col sm:flex-row">
+                    <div className="sm:w-1/2 aspect-square overflow-hidden">
+                      <ProductImageWithFallback
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="w-full h-full group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="sm:w-1/2 p-6 flex flex-col justify-between">
+                      <div>
+                        <EditableText
+                          tag="h3"
+                          value={product.name.toUpperCase()}
+                          onSave={(v) => updateProduct(product.id, { name: v })}
+                          editable={editable}
+                          style={{ fontSize: '18px', fontWeight: 900, color: '#000', marginBottom: '8px' }}
+                        />
+                        <EditableText
+                          tag="p"
+                          value={product.description}
+                          onSave={(v) => updateProduct(product.id, { description: v })}
+                          editable={editable}
+                          style={{ fontSize: '13px', color: '#666', lineHeight: '1.6', marginBottom: '16px' }}
+                        />
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '24px', fontWeight: 900, color: '#000', marginBottom: '12px' }}>{formatPrice(product.price, config.currency)}</p>
+                        <BuyButton
+                          product={product}
+                          className="block w-full text-center text-white font-black py-3 text-sm uppercase tracking-wider hover:opacity-90 transition-opacity"
+                          style={{ background: primaryColor }}
+                        >
+                          Add to Cart
+                        </BuyButton>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <footer style={{ background: '#000', padding: '32px', textAlign: 'center' }}>
+          <p style={{ color: '#fff', fontWeight: 900, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{storeName}</p>
+          <p style={{ color: '#555', fontSize: '11px', marginTop: '4px' }}>Powered by StoreAI</p>
+        </footer>
+      </div>
+    );
+  }
+
+  // ————— NATURAL TEMPLATE —————
+  return (
+    <div className="min-h-screen font-sans" style={{ background: '#faf8f4', color: '#3d3929' }}>
+      <header style={{ padding: '20px 32px', borderBottom: '1px solid #e8e2d6' }}>
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: '18px' }}>🌿</span>
+            <EditableText
+              tag="span"
+              value={storeName}
+              onSave={(v) => update({ storeName: v })}
+              editable={editable}
+              style={{ fontSize: '16px', fontWeight: 600, color: '#3d3929' }}
+            />
+          </div>
+          <nav className="flex gap-6 text-xs" style={{ color: '#8b7e6a' }}>
+            <span>Shop</span>
+            <span>Our Story</span>
+          </nav>
+        </div>
+      </header>
+
+      <section style={{ padding: '80px 32px', textAlign: 'center' }}>
+        <div className="max-w-2xl mx-auto">
+          <p style={{ fontSize: '12px', letterSpacing: '0.3em', textTransform: 'uppercase', color: primaryColor, marginBottom: '16px', fontWeight: 600 }}>Naturally crafted</p>
+          <EditableText
+            tag="h1"
+            value={storeName}
+            onSave={(v) => update({ storeName: v })}
+            editable={editable}
+            style={{ fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: 300, color: '#3d3929', lineHeight: 1.2, marginBottom: '16px' }}
+          />
+          <EditableText
+            tag="p"
+            value={tagline}
+            onSave={(v) => update({ tagline: v })}
+            editable={editable}
+            style={{ fontSize: '16px', color: '#8b7e6a', fontStyle: 'italic', maxWidth: '400px', margin: '0 auto' }}
+          />
+        </div>
+      </section>
+
+      <section className="px-8 pb-20">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {products.map((product) => (
+            <div key={product.id} className="group">
+              <div className="aspect-[4/5] overflow-hidden rounded-2xl mb-4" style={{ background: '#efe9dd' }}>
+                <ProductImageWithFallback
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <EditableText
+                tag="h3"
+                value={product.name}
+                onSave={(v) => updateProduct(product.id, { name: v })}
+                editable={editable}
+                style={{ fontSize: '15px', fontWeight: 600, color: '#3d3929', marginBottom: '4px' }}
+              />
+              <EditableText
+                tag="p"
+                value={product.description}
+                onSave={(v) => updateProduct(product.id, { description: v })}
+                editable={editable}
+                style={{ fontSize: '13px', color: '#8b7e6a', lineHeight: '1.6', marginBottom: '12px' }}
+              />
+              <div className="flex items-center justify-between">
+                <span style={{ fontSize: '15px', fontWeight: 600, color: primaryColor }}>{formatPrice(product.price, config.currency)}</span>
+                <BuyButton
+                  product={product}
+                  className="text-xs font-semibold px-4 py-2 rounded-full border-2 hover:opacity-80 transition-opacity"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
+                >
+                  Add to Cart
+                </BuyButton>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <footer style={{ borderTop: '1px solid #e8e2d6', padding: '32px', textAlign: 'center' }}>
+        <p style={{ fontSize: '13px', color: '#8b7e6a' }}>🌿 {storeName}</p>
+        <p style={{ fontSize: '11px', color: '#c4b99a', marginTop: '4px' }}>Powered by StoreAI</p>
       </footer>
     </div>
   );

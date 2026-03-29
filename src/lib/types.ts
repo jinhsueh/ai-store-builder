@@ -1,4 +1,4 @@
-export type BrandStyle = 'minimal' | 'vibrant' | 'luxury';
+export type BrandStyle = 'minimal' | 'vibrant' | 'luxury' | 'bold' | 'natural';
 export type FontPack = 'modern' | 'classic' | 'playful';
 
 export interface RawProduct {

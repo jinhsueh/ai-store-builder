@@ -231,6 +231,22 @@ function StepTwo({
       bg: 'bg-gray-950',
       textColor: 'text-yellow-400',
     },
+    {
+      id: 'bold',
+      label: 'Bold',
+      desc: 'Loud graphics, street energy, unapologetic.',
+      tagline: 'GO BIG.',
+      bg: 'bg-black',
+      textColor: 'text-red-500',
+    },
+    {
+      id: 'natural',
+      label: 'Natural',
+      desc: 'Earthy tones, organic shapes, calm vibes.',
+      tagline: 'Back to nature.',
+      bg: 'bg-amber-50',
+      textColor: 'text-amber-800',
+    },
   ];
 
   return (
