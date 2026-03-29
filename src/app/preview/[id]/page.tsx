@@ -20,6 +20,8 @@ export default function PreviewPage() {
   const [sales, setSales] = useState<number | null>(null);
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [emailInput, setEmailInput] = useState('');
+  const [sendingLink, setSendingLink] = useState(false);
+  const [linkSentInline, setLinkSentInline] = useState(false);
 
   useEffect(() => {
     // Try localStorage first (primary storage on Vercel)
@@ -78,13 +80,45 @@ export default function PreviewPage() {
     setShowEmailCapture(false);
   };
 
-  const handlePublishClick = () => {
+  const handlePublishClick = async () => {
+    // Check server session first
+    try {
+      const res = await fetch('/api/auth/session');
+      const data = await res.json();
+      if (data.email) {
+        localStorage.setItem('storeai_email', data.email);
+        saveAndPublish(data.email);
+        return;
+      }
+    } catch {}
     const hasEmail = localStorage.getItem('storeai_email');
     if (hasEmail) {
       saveAndPublish();
     } else {
       setShowEmailCapture(true);
     }
+  };
+
+  const handleSendLinkAndSave = async () => {
+    if (!emailInput.trim()) return;
+    setSendingLink(true);
+    // Save the store first with this email
+    await saveAndPublish(emailInput.trim());
+    // Then send magic link for future logins
+    try {
+      const res = await fetch('/api/auth/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput.trim() }),
+      });
+      const data = await res.json();
+      if (data.magicUrl) {
+        // Dev mode — auto-verify
+        fetch(data.magicUrl, { credentials: 'include' }).catch(() => {});
+      }
+      setLinkSentInline(true);
+    } catch {}
+    setSendingLink(false);
   };
 
   const copyLink = () => {
@@ -418,32 +452,54 @@ export default function PreviewPage() {
               </div>
             ) : showEmailCapture ? (
               <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 mb-1">Almost there!</p>
-                  <p className="text-xs text-gray-400">Enter your email to save and manage this store later.</p>
-                </div>
-                <input
-                  type="email"
-                  value={emailInput}
-                  onChange={e => setEmailInput(e.target.value)}
-                  placeholder="you@example.com"
-                  autoFocus
-                  onKeyDown={e => { if (e.key === 'Enter' && emailInput.trim()) saveAndPublish(emailInput.trim()); }}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                  onClick={() => saveAndPublish(emailInput.trim())}
-                  disabled={!emailInput.trim()}
-                  className="w-full bg-gray-900 text-white font-semibold py-3 rounded-xl text-sm hover:bg-gray-700 disabled:opacity-40 transition-colors"
-                >
-                  Save & Publish →
-                </button>
-                <button
-                  onClick={() => saveAndPublish()}
-                  className="w-full text-xs text-gray-400 hover:text-gray-600 py-1"
-                >
-                  Skip, publish without account
-                </button>
+                {linkSentInline ? (
+                  <div className="text-center">
+                    <div className="text-green-600 font-semibold text-sm mb-2">✓ Store published!</div>
+                    <p className="text-xs text-gray-500 mb-3">We sent a login link to <span className="font-medium">{emailInput}</span> so you can manage your store anytime.</p>
+                    <button
+                      onClick={copyLink}
+                      className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+                    >
+                      {copied ? '✓ Link Copied!' : 'Copy Store Link'}
+                    </button>
+                    <a
+                      href={`/store/${id}`}
+                      target="_blank"
+                      className="block text-center text-xs text-indigo-600 mt-3 hover:underline"
+                    >
+                      Open live store →
+                    </a>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 mb-1">Almost there!</p>
+                      <p className="text-xs text-gray-400">Enter your email to save and manage this store later. We&apos;ll send a login link.</p>
+                    </div>
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={e => setEmailInput(e.target.value)}
+                      placeholder="you@example.com"
+                      autoFocus
+                      onKeyDown={e => { if (e.key === 'Enter' && emailInput.trim()) handleSendLinkAndSave(); }}
+                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      onClick={handleSendLinkAndSave}
+                      disabled={!emailInput.trim() || sendingLink}
+                      className="w-full bg-gray-900 text-white font-semibold py-3 rounded-xl text-sm hover:bg-gray-700 disabled:opacity-40 transition-colors"
+                    >
+                      {sendingLink ? 'Publishing...' : 'Save & Publish →'}
+                    </button>
+                    <button
+                      onClick={() => saveAndPublish()}
+                      className="w-full text-xs text-gray-400 hover:text-gray-600 py-1"
+                    >
+                      Skip, publish without account
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <button

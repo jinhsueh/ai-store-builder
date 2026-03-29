@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import type { StoreConfig } from '@/lib/types';
 
 const STYLE_LABELS: Record<string, string> = {
@@ -13,17 +14,22 @@ const STYLE_LABELS: Record<string, string> = {
 };
 
 export default function StoresPage() {
+  const searchParams = useSearchParams();
   const [stores, setStores] = useState<StoreConfig[]>([]);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState('');
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState('');
+  const [sendingLink, setSendingLink] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  const error = searchParams.get('error');
 
   const loadStores = useCallback((userEmail?: string) => {
     setLoading(true);
     const localStores: StoreConfig[] = [];
     const seenIds = new Set<string>();
 
-    // Collect from localStorage
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key?.startsWith('store_')) {
@@ -37,7 +43,6 @@ export default function StoresPage() {
       }
     }
 
-    // Fetch from server by email or all
     const url = userEmail
       ? `/api/stores/by-email?email=${encodeURIComponent(userEmail)}`
       : '/api/stores';
@@ -59,29 +64,61 @@ export default function StoresPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Check session on mount
   useEffect(() => {
-    const savedEmail = localStorage.getItem('storeai_email');
-    if (savedEmail) {
-      setEmail(savedEmail);
-      setLoggedIn(true);
-      loadStores(savedEmail);
-    } else {
-      loadStores();
-    }
+    fetch('/api/auth/session')
+      .then(r => r.json())
+      .then(data => {
+        if (data.email) {
+          setEmail(data.email);
+          localStorage.setItem('storeai_email', data.email);
+          loadStores(data.email);
+        } else {
+          // Check localStorage fallback
+          const savedEmail = localStorage.getItem('storeai_email');
+          if (savedEmail) {
+            setEmail(savedEmail);
+            loadStores(savedEmail);
+          } else {
+            loadStores();
+          }
+        }
+      })
+      .catch(() => loadStores());
   }, [loadStores]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
-    localStorage.setItem('storeai_email', email.trim());
-    setLoggedIn(true);
-    loadStores(email.trim());
+    if (!emailInput.trim()) return;
+    setSendingLink(true);
+    setAuthError('');
+    try {
+      const res = await fetch('/api/auth/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // If magicUrl returned (dev mode), auto-redirect
+      if (data.magicUrl) {
+        window.location.href = data.magicUrl;
+        return;
+      }
+      setLinkSent(true);
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : 'Failed to send link');
+    }
+    setSendingLink(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
     localStorage.removeItem('storeai_email');
-    setEmail('');
-    setLoggedIn(false);
+    setEmail(null);
+    setLinkSent(false);
+    setEmailInput('');
     loadStores();
   };
 
@@ -95,7 +132,7 @@ export default function StoresPage() {
             <h1 className="text-lg font-bold text-gray-900">My Stores</h1>
           </div>
           <div className="flex items-center gap-3">
-            {loggedIn && (
+            {email && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">{email}</span>
                 <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600">Logout</button>
@@ -112,29 +149,61 @@ export default function StoresPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        {!loggedIn && (
-          <form onSubmit={handleLogin} className="mb-8 bg-white rounded-xl border border-gray-200 p-6 max-w-md mx-auto">
-            <p className="text-sm font-semibold text-gray-900 mb-1">Sign in to see your stores</p>
-            <p className="text-xs text-gray-400 mb-4">Enter your email to access stores linked to your account.</p>
-            <div className="flex gap-2">
+        {/* Auth errors from redirect */}
+        {error === 'invalid_token' && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+            <p className="text-sm text-red-600">This login link has expired or already been used. Please request a new one.</p>
+          </div>
+        )}
+
+        {/* Login form */}
+        {!email && !linkSent && (
+          <div className="mb-8 bg-white rounded-xl border border-gray-200 p-8 max-w-md mx-auto text-center">
+            <div className="text-3xl mb-3">✦</div>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Welcome to StoreAI</h2>
+            <p className="text-sm text-gray-400 mb-6">Enter your email to access your stores. We&apos;ll send you a sign-in link.</p>
+            <form onSubmit={handleSendLink}>
               <input
                 type="email"
                 placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={emailInput}
+                onChange={e => setEmailInput(e.target.value)}
                 required
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                autoFocus
+                className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button
                 type="submit"
-                className="bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+                disabled={sendingLink || !emailInput.trim()}
+                className="w-full bg-gray-900 text-white text-sm font-semibold px-4 py-3 rounded-xl hover:bg-gray-700 disabled:opacity-40 transition-colors"
               >
-                Sign In
+                {sendingLink ? 'Sending...' : 'Send Sign-In Link'}
               </button>
-            </div>
-          </form>
+            </form>
+            {authError && <p className="text-xs text-red-500 mt-3">{authError}</p>}
+            <p className="text-xs text-gray-300 mt-4">No password needed. We&apos;ll email you a one-click login link.</p>
+          </div>
         )}
 
+        {/* Link sent confirmation */}
+        {!email && linkSent && (
+          <div className="mb-8 bg-white rounded-xl border border-gray-200 p-8 max-w-md mx-auto text-center">
+            <div className="text-3xl mb-3">📬</div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Check your email</h2>
+            <p className="text-sm text-gray-500 mb-1">
+              We sent a sign-in link to <span className="font-semibold text-gray-700">{emailInput}</span>
+            </p>
+            <p className="text-xs text-gray-400 mb-6">Click the link in the email to sign in. It expires in 15 minutes.</p>
+            <button
+              onClick={() => { setLinkSent(false); setEmailInput(''); }}
+              className="text-sm text-indigo-600 hover:text-indigo-800"
+            >
+              Use a different email
+            </button>
+          </div>
+        )}
+
+        {/* Store list */}
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
