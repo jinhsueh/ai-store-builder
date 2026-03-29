@@ -1,0 +1,179 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #1a1a1a;
+  --primary-light: #3a3a3a;
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --bg-dark: #0c0c0c;
+  --text-cream: #e8e0d0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* Dark scrollbar for luxury theme */
+.dark-scroll::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.dark-scroll::-webkit-scrollbar-thumb {
+  background: #c9a84c;
+}
+
+/* Transition utilities */
+.transition-all-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-transform-smooth {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Typography for luxury */
+.font-luxury {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-modern {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.font-playful {
+  font-family: 'Nunito', system-ui, sans-serif;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Step animation */
+@keyframes stepComplete {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.step-complete {
+  animation: stepComplete 0.35s ease-out forwards;
+}
+
+/* Slide transition for wizard steps */
+@keyframes slideInFromRight {
+  from { transform: translateX(40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.slide-in-right {
+  animation: slideInFromRight 0.35s ease-out forwards;
+}
+
+.slide-in-left {
+  animation: slideInFromLeft 0.35s ease-out forwards;
+}
+
+/* Editable text highlight */
+[contenteditable="true"] {
+  cursor: text;
+  outline: none;
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+[contenteditable="true"]:hover {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+[contenteditable="true"]:focus {
+  background: rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Button press effect */
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Luxury gold shimmer */
+@keyframes goldShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.gold-shimmer {
+  background: linear-gradient(90deg, #c9a84c 0%, #e8c97a 50%, #c9a84c 100%);
+  background-size: 200% auto;
+  animation: goldShimmer 3s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Drag and drop zone */
+.drop-zone-active {
+  border-color: #6366f1 !important;
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
+
+/* Spinner */
+@keyframes spinner {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spinner 0.7s linear infinite;
+}
+
+/* Product grid image */
+.product-image {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
