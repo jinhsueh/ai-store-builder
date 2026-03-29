@@ -34,7 +34,7 @@ export async function POST(req: Request) {
           const price = await stripe.prices.create({
             product: stripeProduct.id,
             unit_amount: Math.round(product.price * 100),
-            currency: 'twd',
+            currency: 'usd',
           });
 
           const paymentLink = await stripe.paymentLinks.create({
