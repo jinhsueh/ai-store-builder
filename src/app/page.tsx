@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 const t = {
   en: {
-    nav: { howItWorks: 'How It Works', templates: 'Templates', features: 'Features', cta: 'Start Building →' },
+    nav: { howItWorks: 'How It Works', templates: 'Templates', features: 'Features', myStores: 'My Stores', cta: 'Start Building →' },
     badge: 'AI-Powered Store Builder',
     h1a: 'From products to',
     h1b: 'live store',
@@ -41,7 +41,7 @@ const t = {
     footerCopy: '© 2025 StoreAI',
   },
   zh: {
-    nav: { howItWorks: '如何運作', templates: '版型風格', features: '功能特色', cta: '立即開始 →' },
+    nav: { howItWorks: '如何運作', templates: '版型風格', features: '功能特色', myStores: '我的商店', cta: '立即開始 →' },
     badge: 'AI 驅動的電商建站工具',
     h1a: '從商品清單到',
     h1b: '正式上線',
@@ -95,6 +95,7 @@ export default function HomePage() {
             <a href="#how-it-works" className="hover:text-gray-900 transition-colors">{c.nav.howItWorks}</a>
             <a href="#templates" className="hover:text-gray-900 transition-colors">{c.nav.templates}</a>
             <a href="#features" className="hover:text-gray-900 transition-colors">{c.nav.features}</a>
+            <Link href="/stores" className="hover:text-gray-900 transition-colors">{c.nav.myStores}</Link>
           </div>
 
           <div className="flex items-center gap-3">

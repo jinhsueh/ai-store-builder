@@ -79,9 +79,39 @@ export async function saveStore(config: StoreConfig): Promise<void> {
   const redis = await getRedis();
   if (redis) {
     await redis.set(`store:${config.id}`, JSON.stringify(config));
+    await redis.sadd('store:index', config.id);
     return;
   }
   fsSet(config.id, config);
+}
+
+export async function listStores(): Promise<StoreConfig[]> {
+  const redis = await getRedis();
+  if (redis) {
+    const ids = await redis.smembers('store:index');
+    if (ids.length === 0) return [];
+    const pipeline = redis.pipeline();
+    for (const id of ids) pipeline.get(`store:${id}`);
+    const results = await pipeline.exec();
+    if (!results) return [];
+    return results
+      .map(([err, data]) => {
+        if (err || !data) return null;
+        try { return JSON.parse(data as string) as StoreConfig; } catch { return null; }
+      })
+      .filter((s): s is StoreConfig => s !== null)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  // Filesystem fallback
+  const fs = require('fs') as typeof import('fs');
+  const path = require('path') as typeof import('path');
+  const dir = path.join(process.cwd(), 'data', 'stores');
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter((f: string) => f.endsWith('.json'))
+    .map((f: string) => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8')); } catch { return null; } })
+    .filter((s: StoreConfig | null): s is StoreConfig => s !== null)
+    .sort((a: StoreConfig, b: StoreConfig) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function getStore(id: string): Promise<StoreConfig | null> {

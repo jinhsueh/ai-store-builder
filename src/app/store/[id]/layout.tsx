@@ -33,6 +33,37 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function StoreLayout({ children }: Props) {
-  return children;
+export default async function StoreLayout({ children, params }: Props) {
+  const store = await getStore(params.id);
+
+  const jsonLd = store
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Store',
+        name: store.storeName,
+        description: store.tagline,
+        ...(store.products[0]?.imageUrl ? { image: store.products[0].imageUrl } : {}),
+        offers: store.products.map((p) => ({
+          '@type': 'Offer',
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          priceCurrency: store.currency || 'USD',
+          availability: 'https://schema.org/InStock',
+          ...(p.imageUrl ? { image: p.imageUrl } : {}),
+        })),
+      }
+    : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {children}
+    </>
+  );
 }
