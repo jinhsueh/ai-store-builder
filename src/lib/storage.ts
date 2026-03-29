@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { StoreConfig } from './types';
 
-const DATA_DIR = path.join(process.cwd(), 'data', 'stores');
+const DATA_DIR = process.env.VERCEL
+  ? path.join('/tmp', 'stores')
+  : path.join(process.cwd(), 'data', 'stores');
 
 const DEMO_STORE: StoreConfig = {
   id: 'demo',
