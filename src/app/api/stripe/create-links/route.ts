@@ -7,12 +7,12 @@ export async function POST(req: Request) {
   const { products }: Body = await req.json();
 
   if (!process.env.STRIPE_SECRET_KEY) {
-    // Return products with mock payment links
     return NextResponse.json({
       products: products.map(p => ({
         ...p,
         stripePaymentLink: `https://buy.stripe.com/test_demo_${p.id}`,
       })),
+      warning: 'STRIPE_SECRET_KEY not set — using mock links',
     });
   }
 
@@ -20,12 +20,14 @@ export async function POST(req: Request) {
     const Stripe = (await import('stripe')).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+    const errors: string[] = [];
+
     const updatedProducts = await Promise.all(
       products.map(async (product) => {
         try {
           const stripeProduct = await stripe.products.create({
             name: product.name,
-            description: product.description.slice(0, 500),
+            description: (product.description || '').slice(0, 500),
             images: product.imageUrl ? [product.imageUrl] : [],
           });
 
@@ -40,15 +42,25 @@ export async function POST(req: Request) {
           });
 
           return { ...product, stripePaymentLink: paymentLink.url };
-        } catch {
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          errors.push(`${product.name}: ${msg}`);
+          console.error(`Stripe error for "${product.name}":`, msg);
           return { ...product, stripePaymentLink: undefined };
         }
       })
     );
 
-    return NextResponse.json({ products: updatedProducts });
-  } catch (err) {
-    console.error('Stripe error:', err);
-    return NextResponse.json({ products }, { status: 200 });
+    return NextResponse.json({
+      products: updatedProducts,
+      ...(errors.length > 0 ? { errors } : {}),
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Stripe init error:', msg);
+    return NextResponse.json({
+      products,
+      error: msg,
+    }, { status: 200 });
   }
 }

@@ -359,7 +359,10 @@ export default function CreatePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ products: genData.products }),
       });
-      const stripeData = stripeRes.ok ? await stripeRes.json() : { products: genData.products };
+      const stripeData = await stripeRes.json().catch(() => ({ products: genData.products }));
+      if (stripeData.errors?.length) {
+        console.warn('Stripe errors:', stripeData.errors);
+      }
 
       // Save store — generate ID client-side + persist to localStorage
       const { nanoid } = await import('nanoid');
