@@ -1,10 +1,4 @@
-import fs from 'fs';
-import path from 'path';
 import { StoreConfig } from './types';
-
-const DATA_DIR = process.env.VERCEL
-  ? path.join('/tmp', 'stores')
-  : path.join(process.cwd(), 'data', 'stores');
 
 const DEMO_STORE: StoreConfig = {
   id: 'demo',
@@ -43,38 +37,63 @@ const DEMO_STORE: StoreConfig = {
   ],
 };
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+// ——— Vercel KV (production) ———
+const useKV = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+
+async function kvGet(key: string): Promise<StoreConfig | null> {
+  const { kv } = await import('@vercel/kv');
+  return kv.get<StoreConfig>(key);
 }
 
-export function saveStore(config: StoreConfig): void {
-  ensureDataDir();
-  const filePath = path.join(DATA_DIR, `${config.id}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(config, null, 2), 'utf-8');
+async function kvSet(key: string, value: StoreConfig): Promise<void> {
+  const { kv } = await import('@vercel/kv');
+  await kv.set(key, value);
 }
 
-export function getStore(id: string): StoreConfig | null {
-  if (id === 'demo') return DEMO_STORE;
-
-  ensureDataDir();
-  const filePath = path.join(DATA_DIR, `${id}.json`);
-  if (!fs.existsSync(filePath)) {
-    return null;
-  }
+// ——— Filesystem (local dev) ———
+function fsGet(id: string): StoreConfig | null {
+  const fs = require('fs') as typeof import('fs');
+  const path = require('path') as typeof import('path');
+  const dir = path.join(process.cwd(), 'data', 'stores');
+  const filePath = path.join(dir, `${id}.json`);
+  if (!fs.existsSync(filePath)) return null;
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(content) as StoreConfig;
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8')) as StoreConfig;
   } catch {
     return null;
   }
 }
 
-export function updateStore(id: string, updates: Partial<StoreConfig>): StoreConfig | null {
-  const existing = getStore(id);
+function fsSet(id: string, config: StoreConfig): void {
+  const fs = require('fs') as typeof import('fs');
+  const path = require('path') as typeof import('path');
+  const dir = path.join(process.cwd(), 'data', 'stores');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify(config, null, 2), 'utf-8');
+}
+
+// ——— Public API (async to support KV) ———
+export async function saveStore(config: StoreConfig): Promise<void> {
+  if (useKV) {
+    await kvSet(`store:${config.id}`, config);
+  } else {
+    fsSet(config.id, config);
+  }
+}
+
+export async function getStore(id: string): Promise<StoreConfig | null> {
+  if (id === 'demo') return DEMO_STORE;
+
+  if (useKV) {
+    return kvGet(`store:${id}`);
+  }
+  return fsGet(id);
+}
+
+export async function updateStore(id: string, updates: Partial<StoreConfig>): Promise<StoreConfig | null> {
+  const existing = await getStore(id);
   if (!existing) return null;
   const updated = { ...existing, ...updates };
-  saveStore(updated);
+  await saveStore(updated);
   return updated;
 }

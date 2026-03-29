@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       id: nanoid(10),
       createdAt: new Date().toISOString(),
     };
-    saveStore(config);
+    await saveStore(config);
     return NextResponse.json({ id: config.id, success: true });
   } catch (err) {
     console.error(err);
