@@ -18,6 +18,8 @@ export default function PreviewPage() {
   const [uploading, setUploading] = useState(false);
   const [views, setViews] = useState<number | null>(null);
   const [sales, setSales] = useState<number | null>(null);
+  const [showEmailCapture, setShowEmailCapture] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
 
   useEffect(() => {
     // Try localStorage first (primary storage on Vercel)
@@ -54,17 +56,33 @@ export default function PreviewPage() {
     return btoa(unescape(encodeURIComponent(JSON.stringify(c))));
   };
 
-  const saveAndPublish = async () => {
+  const saveAndPublish = async (email?: string) => {
     if (!config) return;
+    const finalEmail = email || localStorage.getItem('storeai_email') || undefined;
+    const configToSave = finalEmail ? { ...config, ownerEmail: finalEmail } : config;
+    if (finalEmail) {
+      localStorage.setItem('storeai_email', finalEmail);
+      setConfig(configToSave);
+    }
     // Save to localStorage
-    localStorage.setItem(`store_${id}`, JSON.stringify(config));
+    localStorage.setItem(`store_${id}`, JSON.stringify(configToSave));
     // Best-effort server save
     fetch(`/api/store/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
+      body: JSON.stringify(configToSave),
     }).catch(() => {});
     setSaved(true);
+    setShowEmailCapture(false);
+  };
+
+  const handlePublishClick = () => {
+    const hasEmail = localStorage.getItem('storeai_email');
+    if (hasEmail) {
+      saveAndPublish();
+    } else {
+      setShowEmailCapture(true);
+    }
   };
 
   const copyLink = () => {
@@ -381,12 +399,12 @@ export default function PreviewPage() {
           <div className="p-5 mt-auto">
             {saved ? (
               <div className="text-center">
-                <div className="text-green-600 font-semibold text-sm mb-3">✓ Store saved!</div>
+                <div className="text-green-600 font-semibold text-sm mb-3">✓ Store published!</div>
                 <button
                   onClick={copyLink}
                   className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
                 >
-                  {copied ? '✓ Link Copied!' : 'Copy Store Link 🔗'}
+                  {copied ? '✓ Link Copied!' : 'Copy Store Link'}
                 </button>
                 <a
                   href={`/store/${id}`}
@@ -396,9 +414,38 @@ export default function PreviewPage() {
                   Open live store →
                 </a>
               </div>
+            ) : showEmailCapture ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">Almost there!</p>
+                  <p className="text-xs text-gray-400">Enter your email to save and manage this store later.</p>
+                </div>
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={e => setEmailInput(e.target.value)}
+                  placeholder="you@example.com"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter' && emailInput.trim()) saveAndPublish(emailInput.trim()); }}
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={() => saveAndPublish(emailInput.trim())}
+                  disabled={!emailInput.trim()}
+                  className="w-full bg-gray-900 text-white font-semibold py-3 rounded-xl text-sm hover:bg-gray-700 disabled:opacity-40 transition-colors"
+                >
+                  Save & Publish →
+                </button>
+                <button
+                  onClick={() => saveAndPublish()}
+                  className="w-full text-xs text-gray-400 hover:text-gray-600 py-1"
+                >
+                  Skip, publish without account
+                </button>
+              </div>
             ) : (
               <button
-                onClick={saveAndPublish}
+                onClick={handlePublishClick}
                 className="w-full bg-gray-900 text-white font-semibold py-3 rounded-xl text-sm hover:bg-gray-700 transition-colors"
               >
                 Save & Publish →

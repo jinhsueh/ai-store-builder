@@ -24,6 +24,37 @@ function StepOne({
   const [showManual, setShowManual] = useState(false);
   const [manual, setManual] = useState({ name: '', price: '', imageUrl: '' });
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+
+  const handleImportUrl = async () => {
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    setImportError('');
+    try {
+      const res = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: importUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      if (data.storeName && !category) setCategory(data.storeName);
+      if (data.products?.length > 0) {
+        const newProducts = data.products.map((p: { name: string; price: number; imageUrl?: string }) => ({
+          name: p.name,
+          price: p.price || 0,
+          imageUrl: p.imageUrl || '',
+        }));
+        setProducts([...products, ...newProducts]);
+      }
+      setImportUrl('');
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Could not import from this URL');
+    }
+    setImporting(false);
+  };
 
   const handleFile = async (file: File) => {
     const text = await file.text();
@@ -70,8 +101,44 @@ function StepOne({
         />
       </div>
 
+      {/* URL Import */}
       <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Upload products (CSV) *</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Import from URL <span className="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <p className="text-xs text-gray-400 mb-2">Paste a link to your IG shop, Shopee, website — AI will extract product info.</p>
+        <div className="flex gap-2">
+          <input
+            type="url"
+            value={importUrl}
+            onChange={(e) => setImportUrl(e.target.value)}
+            placeholder="https://www.instagram.com/yourshop or any product page"
+            className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleImportUrl(); } }}
+          />
+          <button
+            onClick={handleImportUrl}
+            disabled={importing || !importUrl.trim()}
+            className="px-5 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-40 transition-colors shrink-0"
+          >
+            {importing ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
+                Scanning...
+              </span>
+            ) : 'Import'}
+          </button>
+        </div>
+        {importError && <p className="text-xs text-red-500 mt-2">{importError}</p>}
+      </div>
+
+      <div className="relative mb-6">
+        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200"></div></div>
+        <div className="relative flex justify-center"><span className="bg-white px-4 text-xs text-gray-400">or add products manually</span></div>
+      </div>
+
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Upload products (CSV)</label>
         <div
           className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
             dragging ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'

@@ -176,72 +176,39 @@ export default function HomePage() {
             <h2 className="text-4xl font-bold text-gray-900 mb-4">{c.templatesTitle}</h2>
             <p className="text-lg text-gray-500">{c.templatesSub}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Minimal preview */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
-              <div className="h-48 bg-white border-b border-gray-100 flex flex-col items-center justify-center p-6">
-                <div className="w-20 h-1 bg-gray-200 mb-3 rounded"></div>
-                <div className="w-32 h-2 bg-gray-900 mb-2 rounded"></div>
-                <div className="w-24 h-1 bg-gray-300 mb-4 rounded"></div>
-                <div className="flex gap-3">
-                  {[1,2,3].map(i => (
-                    <div key={i} className="w-14 h-16 bg-gray-100 rounded flex flex-col items-center justify-end pb-1">
-                      <div className="w-8 h-1 bg-gray-400 mb-1 rounded"></div>
-                      <div className="w-6 h-1 bg-gray-300 rounded"></div>
+          {(() => {
+            const previews = [
+              { bg: 'bg-white border-b border-gray-100', items: 'bg-gray-100 rounded', accent: 'bg-gray-900', sub: 'bg-gray-300', btn: 'bg-gray-400' },
+              { bg: 'bg-gradient-to-br from-orange-400 to-pink-500', items: 'bg-white/20 rounded-xl', accent: 'bg-white/90', sub: 'bg-white/60', btn: 'bg-white' },
+              { bg: 'bg-gray-950', items: 'border border-gray-700', accent: 'bg-yellow-500/80', sub: 'bg-gray-600', btn: 'border border-yellow-600' },
+              { bg: 'bg-black', items: 'border-2 border-red-500', accent: 'bg-white', sub: 'bg-red-500', btn: 'bg-red-500' },
+              { bg: 'bg-amber-50', items: 'bg-amber-100 rounded-xl', accent: 'bg-amber-800', sub: 'bg-amber-400', btn: 'bg-amber-700' },
+            ];
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+                {c.templates.map((tmpl, i) => (
+                  <div key={tmpl.tag} className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
+                    <div className={`h-36 flex flex-col items-center justify-center p-4 ${previews[i].bg}`}>
+                      <div className={`w-20 h-2 ${previews[i].accent} mb-2 rounded`}></div>
+                      <div className={`w-14 h-1 ${previews[i].sub} mb-3 rounded`}></div>
+                      <div className="flex gap-2">
+                        {[1,2,3].map(j => (
+                          <div key={j} className={`w-10 h-12 ${previews[i].items} flex flex-col items-center justify-end pb-1`}>
+                            <div className={`w-6 h-2 ${previews[i].btn} rounded`}></div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-              <div className="p-6">
-                <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${c.templates[0].tagColor}`}>{c.templates[0].tag}</div>
-                <h3 className="font-bold text-gray-900 mb-2">{c.templates[0].title}</h3>
-                <p className="text-sm text-gray-500">{c.templates[0].desc}</p>
-              </div>
-            </div>
-
-            {/* Vibrant preview */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
-              <div className="h-48 bg-gradient-to-br from-orange-400 to-pink-500 flex flex-col items-center justify-center p-6">
-                <div className="w-32 h-3 bg-white/90 mb-2 rounded-full"></div>
-                <div className="w-24 h-2 bg-white/60 mb-5 rounded-full"></div>
-                <div className="flex gap-3">
-                  {[1,2,3].map(i => (
-                    <div key={i} className="w-14 h-16 bg-white/20 backdrop-blur rounded-xl flex flex-col items-center justify-end pb-2">
-                      <div className="w-8 h-1 bg-white/80 mb-1 rounded"></div>
-                      <div className="w-10 h-3 bg-white rounded-full"></div>
+                    <div className="p-4">
+                      <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${tmpl.tagColor}`}>{tmpl.tag}</div>
+                      <h3 className="font-bold text-gray-900 mb-1 text-sm">{tmpl.title}</h3>
+                      <p className="text-xs text-gray-500">{tmpl.desc}</p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-              <div className="p-6">
-                <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${c.templates[1].tagColor}`}>{c.templates[1].tag}</div>
-                <h3 className="font-bold text-gray-900 mb-2">{c.templates[1].title}</h3>
-                <p className="text-sm text-gray-500">{c.templates[1].desc}</p>
-              </div>
-            </div>
-
-            {/* Luxury preview */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
-              <div className="h-48 bg-gray-950 flex flex-col items-center justify-center p-6">
-                <div className="w-4 h-4 border border-yellow-500 mb-3 rotate-45"></div>
-                <div className="w-28 h-2 bg-yellow-500/80 mb-2 rounded"></div>
-                <div className="w-20 h-1 bg-gray-600 mb-4 rounded"></div>
-                <div className="flex gap-3">
-                  {[1,2,3].map(i => (
-                    <div key={i} className="w-14 h-16 border border-gray-700 flex flex-col items-center justify-end pb-2">
-                      <div className="w-8 h-1 bg-gray-500 mb-1 rounded"></div>
-                      <div className="w-10 h-3 border border-yellow-600 rounded"></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="p-6">
-                <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${c.templates[2].tagColor}`}>{c.templates[2].tag}</div>
-                <h3 className="font-bold text-gray-900 mb-2">{c.templates[2].title}</h3>
-                <p className="text-sm text-gray-500">{c.templates[2].desc}</p>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       </section>
 
