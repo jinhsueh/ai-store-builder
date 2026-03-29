@@ -37,20 +37,22 @@ const DEMO_STORE: StoreConfig = {
   ],
 };
 
-// ——— Vercel KV (production) ———
-const useKV = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+// ——— Redis (production) ———
+let redisClient: import('ioredis').default | null = null;
 
-async function kvGet(key: string): Promise<StoreConfig | null> {
-  const { kv } = await import('@vercel/kv');
-  return kv.get<StoreConfig>(key);
+async function getRedis() {
+  if (redisClient) return redisClient;
+  if (!process.env.REDIS_URL) return null;
+
+  const Redis = (await import('ioredis')).default;
+  redisClient = new Redis(process.env.REDIS_URL, {
+    maxRetriesPerRequest: 2,
+    connectTimeout: 5000,
+  });
+  return redisClient;
 }
 
-async function kvSet(key: string, value: StoreConfig): Promise<void> {
-  const { kv } = await import('@vercel/kv');
-  await kv.set(key, value);
-}
-
-// ——— Filesystem (local dev) ———
+// ——— Filesystem (local dev fallback) ———
 function fsGet(id: string): StoreConfig | null {
   const fs = require('fs') as typeof import('fs');
   const path = require('path') as typeof import('path');
@@ -72,20 +74,24 @@ function fsSet(id: string, config: StoreConfig): void {
   fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify(config, null, 2), 'utf-8');
 }
 
-// ——— Public API (async to support KV) ———
+// ——— Public API ———
 export async function saveStore(config: StoreConfig): Promise<void> {
-  if (useKV) {
-    await kvSet(`store:${config.id}`, config);
-  } else {
-    fsSet(config.id, config);
+  const redis = await getRedis();
+  if (redis) {
+    await redis.set(`store:${config.id}`, JSON.stringify(config));
+    return;
   }
+  fsSet(config.id, config);
 }
 
 export async function getStore(id: string): Promise<StoreConfig | null> {
   if (id === 'demo') return DEMO_STORE;
 
-  if (useKV) {
-    return kvGet(`store:${id}`);
+  const redis = await getRedis();
+  if (redis) {
+    const data = await redis.get(`store:${id}`);
+    if (!data) return null;
+    return JSON.parse(data) as StoreConfig;
   }
   return fsGet(id);
 }
