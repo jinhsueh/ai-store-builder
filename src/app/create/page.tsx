@@ -361,8 +361,12 @@ export default function CreatePage() {
       });
       const stripeData = stripeRes.ok ? await stripeRes.json() : { products: genData.products };
 
-      // Save store
-      const storePayload = {
+      // Save store — generate ID client-side + persist to localStorage
+      const { nanoid } = await import('nanoid');
+      const id = nanoid(10);
+      const storeConfig = {
+        id,
+        createdAt: new Date().toISOString(),
         storeName: genData.storeName,
         tagline: genData.tagline,
         category,
@@ -372,13 +376,15 @@ export default function CreatePage() {
         products: stripeData.products || genData.products,
       };
 
-      const saveRes = await fetch('/api/store/save', {
+      // Save to localStorage (primary storage)
+      localStorage.setItem(`store_${id}`, JSON.stringify(storeConfig));
+
+      // Also try server save (best-effort, for local dev)
+      fetch('/api/store/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storePayload),
-      });
-      if (!saveRes.ok) throw new Error('Save failed');
-      const { id } = await saveRes.json();
+        body: JSON.stringify(storeConfig),
+      }).catch(() => {});
 
       router.push(`/preview/${id}`);
     } catch (err) {

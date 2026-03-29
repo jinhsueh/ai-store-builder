@@ -15,27 +15,47 @@ export default function PreviewPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    // Try localStorage first (primary storage on Vercel)
+    const stored = localStorage.getItem(`store_${id}`);
+    if (stored) {
+      try {
+        setConfig(JSON.parse(stored));
+        setLoading(false);
+        return;
+      } catch {}
+    }
+    // Fall back to API (works in local dev)
     fetch(`/api/store/${id}`)
-      .then(r => r.json())
-      .then(data => { setConfig(data); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setConfig(data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [id]);
 
   const updateColor = (color: string) => setConfig(c => c ? { ...c, primaryColor: color } : c);
   const updateFont = (font: FontPack) => setConfig(c => c ? { ...c, fontPack: font } : c);
 
+  const encodeConfig = (c: StoreConfig): string => {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(c))));
+  };
+
   const saveAndPublish = async () => {
     if (!config) return;
-    await fetch(`/api/store/${id}`, {
+    // Save to localStorage
+    localStorage.setItem(`store_${id}`, JSON.stringify(config));
+    // Best-effort server save
+    fetch(`/api/store/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
-    });
+    }).catch(() => {});
     setSaved(true);
   };
 
   const copyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/store/${id}`);
+    if (!config) return;
+    const encoded = encodeConfig(config);
+    navigator.clipboard.writeText(`${window.location.origin}/store/${id}#${encoded}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
