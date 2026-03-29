@@ -66,12 +66,14 @@ export default function PreviewPage() {
     }
     // Save to localStorage
     localStorage.setItem(`store_${id}`, JSON.stringify(configToSave));
-    // Best-effort server save
-    fetch(`/api/store/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(configToSave),
-    }).catch(() => {});
+    // Save to server (Redis)
+    try {
+      await fetch(`/api/store/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configToSave),
+      });
+    } catch {}
     setSaved(true);
     setShowEmailCapture(false);
   };

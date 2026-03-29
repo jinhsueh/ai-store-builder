@@ -8,8 +8,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const config: StoreConfig = {
       ...body,
-      id: nanoid(10),
-      createdAt: new Date().toISOString(),
+      id: body.id || nanoid(10),
+      createdAt: body.createdAt || new Date().toISOString(),
     };
     await saveStore(config);
     return NextResponse.json({ id: config.id, success: true });

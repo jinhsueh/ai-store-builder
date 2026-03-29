@@ -10,7 +10,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const store = await getStore(params.id);
 
   if (!store) {
-    return { title: 'Store Not Found — StoreAI' };
+    return {
+      title: 'StoreAI — Your Store',
+      description: 'An AI-powered storefront built with StoreAI.',
+    };
   }
 
   const firstImage = store.products[0]?.imageUrl;

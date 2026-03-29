@@ -490,15 +490,17 @@ export default function CreatePage() {
         products: stripeData.products || genData.products,
       };
 
-      // Save to localStorage (primary storage)
+      // Save to localStorage
       localStorage.setItem(`store_${id}`, JSON.stringify(storeConfig));
 
-      // Also try server save (best-effort, for local dev)
-      fetch('/api/store/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storeConfig),
-      }).catch(() => {});
+      // Save to server (Redis) — await to ensure persistence
+      try {
+        await fetch('/api/store/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(storeConfig),
+        });
+      } catch {}
 
       router.push(`/preview/${id}`);
     } catch (err) {
