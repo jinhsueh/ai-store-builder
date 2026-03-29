@@ -50,28 +50,30 @@ function BuyButton({
   children: React.ReactNode;
   style?: React.CSSProperties;
 }) {
-  if (product.stripePaymentLink) {
+  const link = product.stripePaymentLink;
+  const isDemo = !link || link.includes('test_demo');
+
+  if (isDemo) {
     return (
-      <a
-        href={product.stripePaymentLink}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
         className={className}
         style={style}
+        onClick={() => alert('This is a demo store!\nCreate your own store at StoreAI to enable real Stripe checkout.')}
       >
         {children}
-      </a>
+      </button>
     );
   }
   return (
-    <button
-      className={`${className ?? ''} opacity-60 cursor-not-allowed`}
+    <a
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
       style={style}
-      title="Stripe checkout not configured"
-      disabled
     >
       {children}
-    </button>
+    </a>
   );
 }
 
