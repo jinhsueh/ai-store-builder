@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
 
 export async function POST(req: Request) {
   try {
@@ -9,21 +8,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File must be under 5MB' }, { status: 400 });
+    // Max 2MB for base64 (reasonable for product images)
+    if (file.size > 2 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File must be under 2MB' }, { status: 400 });
     }
 
-    const blob = await put(`products/${Date.now()}-${file.name}`, file, {
-      access: 'public',
-    });
+    // Try Vercel Blob if token is available
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        const { put } = await import('@vercel/blob');
+        const blob = await put(`products/${Date.now()}-${file.name}`, file, {
+          access: 'public',
+        });
+        return NextResponse.json({ url: blob.url });
+      } catch (err) {
+        console.warn('Blob upload failed, falling back to base64:', err);
+      }
+    }
 
-    return NextResponse.json({ url: blob.url });
+    // Fallback: convert to base64 data URL
+    const buffer = await file.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
+    return NextResponse.json({ url: dataUrl });
   } catch (err) {
     console.error('Upload error:', err);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });

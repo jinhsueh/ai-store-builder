@@ -116,7 +116,7 @@ function StepOne({
                   <img src={p.imageUrl} alt="" className="w-8 h-8 rounded object-cover bg-gray-200" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 )}
                 <span className="flex-1 text-sm font-medium text-gray-800 truncate">{p.name}</span>
-                <span className="text-sm text-gray-500">NT${p.price}</span>
+                <span className="text-sm text-gray-500">${p.price}</span>
                 <button onClick={() => removeProduct(i)} className="text-gray-400 hover:text-red-500 text-xs ml-2">✕</button>
               </div>
             ))}
@@ -135,7 +135,7 @@ function StepOne({
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
             <input
-              placeholder="Price (NT$) *"
+              placeholder="Price *"
               type="number"
               value={manual.price}
               onChange={(e) => setManual({ ...manual, price: e.target.value })}
