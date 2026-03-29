@@ -13,6 +13,8 @@ export default function PreviewPage() {
   const [mobileView, setMobileView] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [newProduct, setNewProduct] = useState({ name: '', price: 0, imageUrl: '', description: '' });
 
   useEffect(() => {
     // Try localStorage first (primary storage on Vercel)
@@ -171,16 +173,83 @@ export default function PreviewPage() {
                 <div key={p.id} className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-gray-800 truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400">NT${p.price}</p>
+                    <p className="text-xs text-gray-400">${p.price}</p>
                   </div>
-                  {p.stripePaymentLink ? (
-                    <span className="text-xs text-green-600 shrink-0">✓ Stripe</span>
-                  ) : (
-                    <span className="text-xs text-gray-400 shrink-0">No checkout</span>
-                  )}
+                  <button
+                    onClick={() => setConfig(c => c ? { ...c, products: c.products.filter(x => x.id !== p.id) } : c)}
+                    className="text-xs text-red-400 hover:text-red-600 shrink-0"
+                    title="Remove product"
+                  >
+                    x
+                  </button>
                 </div>
               ))}
             </div>
+            {!showAddProduct ? (
+              <button
+                onClick={() => setShowAddProduct(true)}
+                className="mt-3 w-full text-xs text-indigo-600 hover:text-indigo-800 font-medium py-1.5 border border-dashed border-indigo-300 rounded-lg hover:border-indigo-400 transition-colors"
+              >
+                + Add Product
+              </button>
+            ) : (
+              <div className="mt-3 space-y-2 p-3 bg-gray-50 rounded-lg">
+                <input
+                  type="text"
+                  placeholder="Product name"
+                  value={newProduct.name}
+                  onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))}
+                  className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={newProduct.price || ''}
+                  onChange={e => setNewProduct(p => ({ ...p, price: Number(e.target.value) }))}
+                  className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Image URL"
+                  value={newProduct.imageUrl}
+                  onChange={e => setNewProduct(p => ({ ...p, imageUrl: e.target.value }))}
+                  className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Description"
+                  value={newProduct.description}
+                  onChange={e => setNewProduct(p => ({ ...p, description: e.target.value }))}
+                  className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!newProduct.name || !newProduct.price) return;
+                      const product = {
+                        id: `p-${Date.now()}`,
+                        name: newProduct.name,
+                        price: newProduct.price,
+                        imageUrl: newProduct.imageUrl,
+                        description: newProduct.description || newProduct.name,
+                      };
+                      setConfig(c => c ? { ...c, products: [...c.products, product] } : c);
+                      setNewProduct({ name: '', price: 0, imageUrl: '', description: '' });
+                      setShowAddProduct(false);
+                    }}
+                    className="flex-1 text-xs bg-indigo-600 text-white font-medium py-1.5 rounded-md hover:bg-indigo-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => setShowAddProduct(false)}
+                    className="flex-1 text-xs bg-gray-200 text-gray-600 font-medium py-1.5 rounded-md hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="p-5 mt-auto">
