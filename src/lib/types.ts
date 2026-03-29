@@ -28,5 +28,6 @@ export interface StoreConfig {
   primaryColor: string;
   fontPack: FontPack;
   currency?: Currency;
+  ownerEmail?: string;
   products: Product[];
 }

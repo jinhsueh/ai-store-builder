@@ -80,6 +80,9 @@ export async function saveStore(config: StoreConfig): Promise<void> {
   if (redis) {
     await redis.set(`store:${config.id}`, JSON.stringify(config));
     await redis.sadd('store:index', config.id);
+    if (config.ownerEmail) {
+      await redis.sadd(`email:${config.ownerEmail}`, config.id);
+    }
     return;
   }
   fsSet(config.id, config);
@@ -141,6 +144,26 @@ export async function getViews(id: string): Promise<number> {
     return count ? parseInt(count, 10) : 0;
   }
   return 0;
+}
+
+export async function getStoresByEmail(email: string): Promise<StoreConfig[]> {
+  const redis = await getRedis();
+  if (redis) {
+    const ids = await redis.smembers(`email:${email}`);
+    if (ids.length === 0) return [];
+    const pipeline = redis.pipeline();
+    for (const id of ids) pipeline.get(`store:${id}`);
+    const results = await pipeline.exec();
+    if (!results) return [];
+    return results
+      .map(([err, data]) => {
+        if (err || !data) return null;
+        try { return JSON.parse(data as string) as StoreConfig; } catch { return null; }
+      })
+      .filter((s): s is StoreConfig => s !== null)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  return [];
 }
 
 export async function updateStore(id: string, updates: Partial<StoreConfig>): Promise<StoreConfig | null> {

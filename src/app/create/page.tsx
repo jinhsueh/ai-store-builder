@@ -23,6 +23,7 @@ function StepOne({
   const [dragging, setDragging] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const [manual, setManual] = useState({ name: '', price: '', imageUrl: '' });
+  const [uploadingImg, setUploadingImg] = useState(false);
 
   const handleFile = async (file: File) => {
     const text = await file.text();
@@ -141,12 +142,37 @@ function StepOne({
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
           </div>
-          <input
-            placeholder="Image URL (optional)"
-            value={manual.imageUrl}
-            onChange={(e) => setManual({ ...manual, imageUrl: e.target.value })}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
+          <div className="mb-3">
+            <input
+              placeholder="Image URL (optional)"
+              value={manual.imageUrl}
+              onChange={(e) => setManual({ ...manual, imageUrl: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <label className={`mt-1 block w-full text-center text-xs font-medium py-1.5 rounded-lg border border-dashed cursor-pointer transition-colors ${uploadingImg ? 'border-gray-300 text-gray-400' : 'border-indigo-300 text-indigo-600 hover:border-indigo-400'}`}>
+              {uploadingImg ? 'Uploading...' : 'or upload image'}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingImg}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadingImg(true);
+                  try {
+                    const form = new FormData();
+                    form.append('file', file);
+                    const res = await fetch('/api/upload', { method: 'POST', body: form });
+                    const data = await res.json();
+                    if (data.url) setManual(m => ({ ...m, imageUrl: data.url }));
+                  } catch {}
+                  setUploadingImg(false);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
           <button
             onClick={addManual}
             disabled={!manual.name || !manual.price}
@@ -367,6 +393,7 @@ export default function CreatePage() {
       // Save store — generate ID client-side + persist to localStorage
       const { nanoid } = await import('nanoid');
       const id = nanoid(10);
+      const ownerEmail = localStorage.getItem('storeai_email') || undefined;
       const storeConfig = {
         id,
         createdAt: new Date().toISOString(),
@@ -376,6 +403,7 @@ export default function CreatePage() {
         brandStyle: brandStyle!,
         primaryColor: genData.primaryColor,
         fontPack: genData.fontPack,
+        ...(ownerEmail ? { ownerEmail } : {}),
         products: stripeData.products || genData.products,
       };
 

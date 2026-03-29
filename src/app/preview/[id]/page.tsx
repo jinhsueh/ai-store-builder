@@ -15,6 +15,7 @@ export default function PreviewPage() {
   const [copied, setCopied] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: 0, imageUrl: '', description: '' });
+  const [uploading, setUploading] = useState(false);
   const [views, setViews] = useState<number | null>(null);
 
   useEffect(() => {
@@ -231,6 +232,36 @@ export default function PreviewPage() {
             <div className="space-y-2">
               {config.products.map(p => (
                 <div key={p.id} className="flex items-center gap-2">
+                  <label className="w-8 h-8 rounded bg-gray-100 overflow-hidden shrink-0 cursor-pointer relative group" title="Change image">
+                    {p.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.imageUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="flex items-center justify-center w-full h-full text-xs text-gray-400">+</span>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-[10px]">Edit</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const form = new FormData();
+                        form.append('file', file);
+                        try {
+                          const res = await fetch('/api/upload', { method: 'POST', body: form });
+                          const data = await res.json();
+                          if (data.url) {
+                            setConfig(c => c ? { ...c, products: c.products.map(x => x.id === p.id ? { ...x, imageUrl: data.url } : x) } : c);
+                          }
+                        } catch {}
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-gray-800 truncate">{p.name}</p>
                     <p className="text-xs text-gray-400">{{ USD: '$', TWD: 'NT$', EUR: '€', GBP: '£', JPY: '¥' }[config.currency || 'USD']}{p.price}</p>
@@ -268,13 +299,38 @@ export default function PreviewPage() {
                   onChange={e => setNewProduct(p => ({ ...p, price: Number(e.target.value) }))}
                   className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
-                <input
-                  type="text"
-                  placeholder="Image URL"
-                  value={newProduct.imageUrl}
-                  onChange={e => setNewProduct(p => ({ ...p, imageUrl: e.target.value }))}
-                  className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    placeholder="Image URL"
+                    value={newProduct.imageUrl}
+                    onChange={e => setNewProduct(p => ({ ...p, imageUrl: e.target.value }))}
+                    className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <label className={`block w-full text-center text-xs font-medium py-1.5 rounded-md border border-dashed cursor-pointer transition-colors ${uploading ? 'border-gray-300 text-gray-400' : 'border-indigo-300 text-indigo-600 hover:border-indigo-400'}`}>
+                    {uploading ? 'Uploading...' : 'or upload image'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploading(true);
+                        try {
+                          const form = new FormData();
+                          form.append('file', file);
+                          const res = await fetch('/api/upload', { method: 'POST', body: form });
+                          const data = await res.json();
+                          if (data.url) setNewProduct(p => ({ ...p, imageUrl: data.url }));
+                        } catch {}
+                        setUploading(false);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
                 <input
                   type="text"
                   placeholder="Description"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import type { StoreConfig } from '@/lib/types';
 
@@ -13,8 +13,11 @@ const STYLE_LABELS: Record<string, string> = {
 export default function StoresPage() {
   const [stores, setStores] = useState<StoreConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [loggedIn, setLoggedIn] = useState(false);
 
-  useEffect(() => {
+  const loadStores = useCallback((userEmail?: string) => {
+    setLoading(true);
     const localStores: StoreConfig[] = [];
     const seenIds = new Set<string>();
 
@@ -32,8 +35,12 @@ export default function StoresPage() {
       }
     }
 
-    // Fetch from server and merge
-    fetch('/api/stores')
+    // Fetch from server by email or all
+    const url = userEmail
+      ? `/api/stores/by-email?email=${encodeURIComponent(userEmail)}`
+      : '/api/stores';
+
+    fetch(url)
       .then(r => r.ok ? r.json() : [])
       .then((serverStores: StoreConfig[]) => {
         const merged = [...localStores];
@@ -50,6 +57,32 @@ export default function StoresPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('storeai_email');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setLoggedIn(true);
+      loadStores(savedEmail);
+    } else {
+      loadStores();
+    }
+  }, [loadStores]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    localStorage.setItem('storeai_email', email.trim());
+    setLoggedIn(true);
+    loadStores(email.trim());
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('storeai_email');
+    setEmail('');
+    setLoggedIn(false);
+    loadStores();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -59,16 +92,47 @@ export default function StoresPage() {
             <div className="h-4 w-px bg-gray-200" />
             <h1 className="text-lg font-bold text-gray-900">My Stores</h1>
           </div>
-          <Link
-            href="/create"
-            className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            + New Store
-          </Link>
+          <div className="flex items-center gap-3">
+            {loggedIn && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{email}</span>
+                <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600">Logout</button>
+              </div>
+            )}
+            <Link
+              href="/create"
+              className="bg-gray-900 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              + New Store
+            </Link>
+          </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
+        {!loggedIn && (
+          <form onSubmit={handleLogin} className="mb-8 bg-white rounded-xl border border-gray-200 p-6 max-w-md mx-auto">
+            <p className="text-sm font-semibold text-gray-900 mb-1">Sign in to see your stores</p>
+            <p className="text-xs text-gray-400 mb-4">Enter your email to access stores linked to your account.</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                type="submit"
+                className="bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Sign In
+              </button>
+            </div>
+          </form>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" />
@@ -93,7 +157,6 @@ export default function StoresPage() {
                 href={`/preview/${store.id}`}
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all group"
               >
-                {/* Preview header bar */}
                 <div
                   className="h-2"
                   style={{ backgroundColor: store.primaryColor || '#1a1a1a' }}
