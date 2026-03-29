@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type { StoreConfig } from '@/lib/types';
@@ -14,6 +14,14 @@ const STYLE_LABELS: Record<string, string> = {
 };
 
 export default function StoresPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin" /></div>}>
+      <StoresContent />
+    </Suspense>
+  );
+}
+
+function StoresContent() {
   const searchParams = useSearchParams();
   const [stores, setStores] = useState<StoreConfig[]>([]);
   const [loading, setLoading] = useState(true);
