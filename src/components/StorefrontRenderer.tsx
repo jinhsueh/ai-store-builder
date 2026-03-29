@@ -1,7 +1,20 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import type { StoreConfig, Product } from '@/lib/types';
+import type { StoreConfig, Product, Currency } from '@/lib/types';
+
+const CURRENCY_SYMBOLS: Record<Currency, string> = {
+  USD: '$',
+  TWD: 'NT$',
+  EUR: '€',
+  GBP: '£',
+  JPY: '¥',
+};
+
+function formatPrice(price: number, currency?: Currency): string {
+  const sym = CURRENCY_SYMBOLS[currency || 'USD'];
+  return `${sym}${price}`;
+}
 
 interface Props {
   config: StoreConfig;
@@ -189,7 +202,7 @@ export default function StorefrontRenderer({ config, editable = false, onUpdate 
                       editable={editable}
                       className="text-sm font-medium text-gray-900 tracking-wide uppercase"
                     />
-                    <span className="text-sm text-gray-400 ml-2 shrink-0">NT${product.price}</span>
+                    <span className="text-sm text-gray-400 ml-2 shrink-0">{formatPrice(product.price, config.currency)}</span>
                   </div>
                   <EditableText
                     tag="p"
@@ -290,7 +303,7 @@ export default function StorefrontRenderer({ config, editable = false, onUpdate 
                       className="absolute top-3 right-3 text-white text-xs font-bold px-3 py-1 rounded-full"
                       style={{ backgroundColor: primaryColor }}
                     >
-                      NT${product.price}
+                      {formatPrice(product.price, config.currency)}
                     </div>
                   </div>
                   <div className="p-4">
@@ -425,7 +438,7 @@ export default function StorefrontRenderer({ config, editable = false, onUpdate 
                     style={{ fontSize: '14px', color: '#777', lineHeight: '1.8', marginBottom: '24px', fontFamily: 'Inter, sans-serif' }}
                   />
                   <p style={{ fontSize: '22px', color: '#c9a84c', marginBottom: '28px', fontStyle: 'italic' }}>
-                    NT${product.price}
+                    {formatPrice(product.price, config.currency)}
                   </p>
                   <BuyButton
                     product={product}
@@ -455,7 +468,7 @@ export default function StorefrontRenderer({ config, editable = false, onUpdate 
                   editable={editable}
                   style={{ fontSize: '16px', color: '#e8e0d0', marginBottom: '8px', letterSpacing: '0.02em' }}
                 />
-                <p style={{ color: '#c9a84c', fontSize: '14px', marginBottom: '16px', fontStyle: 'italic' }}>NT${product.price}</p>
+                <p style={{ color: '#c9a84c', fontSize: '14px', marginBottom: '16px', fontStyle: 'italic' }}>{formatPrice(product.price, config.currency)}</p>
                 <EditableText
                   tag="p"
                   value={product.description}

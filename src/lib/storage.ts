@@ -96,6 +96,23 @@ export async function getStore(id: string): Promise<StoreConfig | null> {
   return fsGet(id);
 }
 
+export async function incrementViews(id: string): Promise<number> {
+  const redis = await getRedis();
+  if (redis) {
+    return redis.incr(`views:${id}`);
+  }
+  return 0;
+}
+
+export async function getViews(id: string): Promise<number> {
+  const redis = await getRedis();
+  if (redis) {
+    const count = await redis.get(`views:${id}`);
+    return count ? parseInt(count, 10) : 0;
+  }
+  return 0;
+}
+
 export async function updateStore(id: string, updates: Partial<StoreConfig>): Promise<StoreConfig | null> {
   const existing = await getStore(id);
   if (!existing) return null;

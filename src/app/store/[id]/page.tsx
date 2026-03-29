@@ -43,6 +43,9 @@ export default function StorePage() {
       .then(data => { if (data && !data.error) setConfig(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // Track view (fire-and-forget)
+    fetch(`/api/store/${id}/views`, { method: 'POST' }).catch(() => {});
   }, [id]);
 
   if (loading) {

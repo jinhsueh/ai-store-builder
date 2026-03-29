@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import StorefrontRenderer from '@/components/StorefrontRenderer';
-import type { StoreConfig, FontPack } from '@/lib/types';
+import type { StoreConfig, FontPack, BrandStyle, Currency } from '@/lib/types';
 
 export default function PreviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +15,7 @@ export default function PreviewPage() {
   const [copied, setCopied] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: 0, imageUrl: '', description: '' });
+  const [views, setViews] = useState<number | null>(null);
 
   useEffect(() => {
     // Try localStorage first (primary storage on Vercel)
@@ -32,6 +33,12 @@ export default function PreviewPage() {
       .then(data => { if (data && !data.error) setConfig(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // Fetch view count
+    fetch(`/api/store/${id}/views`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setViews(data.views); })
+      .catch(() => {});
   }, [id]);
 
   const updateColor = (color: string) => setConfig(c => c ? { ...c, primaryColor: color } : c);
@@ -100,6 +107,9 @@ export default function PreviewPage() {
           </Link>
           <div className="h-4 w-px bg-gray-200"></div>
           <span className="text-sm font-semibold text-gray-800">{config.storeName}</span>
+          {views !== null && views > 0 && (
+            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{views} views</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -130,6 +140,30 @@ export default function PreviewPage() {
         <div className="w-72 bg-white border-l border-gray-200 flex flex-col overflow-y-auto">
           <div className="p-5 border-b border-gray-100">
             <h3 className="font-bold text-gray-900 text-sm">Edit Store</h3>
+          </div>
+
+          <div className="p-5 border-b border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Template</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { value: 'minimal' as BrandStyle, label: 'Minimal', icon: '◻' },
+                { value: 'vibrant' as BrandStyle, label: 'Vibrant', icon: '◆' },
+                { value: 'luxury' as BrandStyle, label: 'Luxury', icon: '✦' },
+              ]).map(t => (
+                <button
+                  key={t.value}
+                  onClick={() => setConfig(c => c ? { ...c, brandStyle: t.value } : c)}
+                  className={`py-2 px-2 rounded-lg text-xs font-medium border transition-colors text-center ${
+                    config.brandStyle === t.value
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="block text-base mb-0.5">{t.icon}</span>
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="p-5 border-b border-gray-100">
@@ -167,13 +201,39 @@ export default function PreviewPage() {
           </div>
 
           <div className="p-5 border-b border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Currency</p>
+            <div className="grid grid-cols-5 gap-1">
+              {([
+                { value: 'USD' as Currency, label: '$' },
+                { value: 'TWD' as Currency, label: 'NT$' },
+                { value: 'EUR' as Currency, label: '€' },
+                { value: 'GBP' as Currency, label: '£' },
+                { value: 'JPY' as Currency, label: '¥' },
+              ]).map(c => (
+                <button
+                  key={c.value}
+                  onClick={() => setConfig(cfg => cfg ? { ...cfg, currency: c.value } : cfg)}
+                  className={`py-1.5 px-1 rounded-md text-xs font-medium border transition-colors text-center ${
+                    (config.currency || 'USD') === c.value
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                  title={c.value}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-5 border-b border-gray-100">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Products ({config.products.length})</p>
             <div className="space-y-2">
               {config.products.map(p => (
                 <div key={p.id} className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-gray-800 truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400">${p.price}</p>
+                    <p className="text-xs text-gray-400">{{ USD: '$', TWD: 'NT$', EUR: '€', GBP: '£', JPY: '¥' }[config.currency || 'USD']}{p.price}</p>
                   </div>
                   <button
                     onClick={() => setConfig(c => c ? { ...c, products: c.products.filter(x => x.id !== p.id) } : c)}

@@ -16,6 +16,8 @@ export interface Product {
   stripePaymentLink?: string;
 }
 
+export type Currency = 'USD' | 'TWD' | 'EUR' | 'GBP' | 'JPY';
+
 export interface StoreConfig {
   id: string;
   createdAt: string;
@@ -25,5 +27,6 @@ export interface StoreConfig {
   brandStyle: BrandStyle;
   primaryColor: string;
   fontPack: FontPack;
+  currency?: Currency;
   products: Product[];
 }
