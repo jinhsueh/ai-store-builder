@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StorefrontRenderer from '@/components/StorefrontRenderer';
 import type { StoreConfig, FontPack, BrandStyle, Currency } from '@/lib/types';
 
 export default function PreviewPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [config, setConfig] = useState<StoreConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileView, setMobileView] = useState(false);
@@ -203,6 +204,23 @@ export default function PreviewPage() {
         <div className="w-72 bg-white border-l border-gray-200 flex flex-col overflow-y-auto">
           <div className="p-5 border-b border-gray-100">
             <h3 className="font-bold text-gray-900 text-sm">Edit Store</h3>
+          </div>
+
+          <div className="p-5 border-b border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Store Name</p>
+            <input
+              type="text"
+              value={config.storeName}
+              onChange={e => setConfig(c => c ? { ...c, storeName: e.target.value } : c)}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 mb-3"
+            />
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tagline</p>
+            <input
+              type="text"
+              value={config.tagline}
+              onChange={e => setConfig(c => c ? { ...c, tagline: e.target.value } : c)}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
           </div>
 
           <div className="p-5 border-b border-gray-100">
@@ -438,37 +456,79 @@ export default function PreviewPage() {
                 <div className="text-green-600 font-semibold text-sm mb-3">✓ Store published!</div>
                 <button
                   onClick={copyLink}
-                  className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+                  className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl text-sm hover:bg-indigo-700 transition-colors mb-3"
                 >
                   {copied ? '✓ Link Copied!' : 'Copy Store Link'}
                 </button>
                 <a
                   href={`/store/${id}`}
                   target="_blank"
-                  className="block text-center text-xs text-indigo-600 mt-3 hover:underline"
+                  className="block text-center text-xs text-indigo-600 mb-4 hover:underline"
                 >
                   Open live store →
                 </a>
+                {/* Share buttons */}
+                <div className="border-t border-gray-100 pt-3">
+                  <p className="text-xs text-gray-400 mb-2">Share your store</p>
+                  <div className="flex justify-center gap-2 mb-3">
+                    {[
+                      { label: '𝕏', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${config.storeName}!`)}&url=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/store/${id}`)}`, bg: '#000' },
+                      { label: 'f', href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/store/${id}`)}`, bg: '#1877F2' },
+                      { label: 'LINE', href: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/store/${id}`)}`, bg: '#06C755' },
+                      { label: 'WA', href: `https://wa.me/?text=${encodeURIComponent(`${config.storeName} ${typeof window !== 'undefined' ? window.location.origin : ''}/store/${id}`)}`, bg: '#25D366' },
+                    ].map(s => (
+                      <a
+                        key={s.label}
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold hover:opacity-80 transition-opacity"
+                        style={{ backgroundColor: s.bg }}
+                      >
+                        {s.label}
+                      </a>
+                    ))}
+                  </div>
+                  {/* QR Code */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/store/${id}`)}`}
+                    alt="Store QR Code"
+                    className="w-24 h-24 mx-auto rounded-lg border border-gray-200"
+                  />
+                  <p className="text-[10px] text-gray-300 mt-1">Scan to visit store</p>
+                </div>
               </div>
             ) : showEmailCapture ? (
               <div className="space-y-3">
                 {linkSentInline ? (
                   <div className="text-center">
                     <div className="text-green-600 font-semibold text-sm mb-2">✓ Store published!</div>
-                    <p className="text-xs text-gray-500 mb-3">We sent a login link to <span className="font-medium">{emailInput}</span> so you can manage your store anytime.</p>
+                    <p className="text-xs text-gray-500 mb-3">Login link sent to <span className="font-medium">{emailInput}</span></p>
                     <button
                       onClick={copyLink}
-                      className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl text-sm hover:bg-indigo-700 transition-colors"
+                      className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-xl text-sm hover:bg-indigo-700 transition-colors mb-2"
                     >
                       {copied ? '✓ Link Copied!' : 'Copy Store Link'}
                     </button>
                     <a
                       href={`/store/${id}`}
                       target="_blank"
-                      className="block text-center text-xs text-indigo-600 mt-3 hover:underline"
+                      className="block text-center text-xs text-indigo-600 mb-3 hover:underline"
                     >
                       Open live store →
                     </a>
+                    <div className="flex justify-center gap-2">
+                      {[
+                        { label: '𝕏', href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${config.storeName}!`)}&url=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/store/${id}`)}`, bg: '#000' },
+                        { label: 'LINE', href: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(`${typeof window !== 'undefined' ? window.location.origin : ''}/store/${id}`)}`, bg: '#06C755' },
+                        { label: 'WA', href: `https://wa.me/?text=${encodeURIComponent(`${config.storeName} ${typeof window !== 'undefined' ? window.location.origin : ''}/store/${id}`)}`, bg: '#25D366' },
+                      ].map(s => (
+                        <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: s.bg }}>{s.label}</a>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -509,6 +569,19 @@ export default function PreviewPage() {
                 Save & Publish →
               </button>
             )}
+            <button
+              onClick={async () => {
+                if (!confirm('Delete this store? This cannot be undone.')) return;
+                try {
+                  await fetch(`/api/store/${id}`, { method: 'DELETE' });
+                } catch {}
+                localStorage.removeItem(`store_${id}`);
+                router.push('/stores');
+              }}
+              className="w-full text-xs text-red-400 hover:text-red-600 py-2 mt-3 transition-colors"
+            >
+              Delete Store
+            </button>
           </div>
         </div>
       </div>

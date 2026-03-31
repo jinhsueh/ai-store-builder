@@ -166,6 +166,34 @@ export async function getStoresByEmail(email: string): Promise<StoreConfig[]> {
   return [];
 }
 
+export async function deleteStore(id: string): Promise<boolean> {
+  if (id === 'demo') return false;
+  const redis = await getRedis();
+  if (redis) {
+    const data = await redis.get(`store:${id}`);
+    if (!data) return false;
+    try {
+      const store = JSON.parse(data) as StoreConfig;
+      if (store.ownerEmail) {
+        await redis.srem(`email:${store.ownerEmail}`, id);
+      }
+    } catch {}
+    await redis.del(`store:${id}`);
+    await redis.srem('store:index', id);
+    await redis.del(`views:${id}`);
+    return true;
+  }
+  // Filesystem fallback
+  const fs = require('fs') as typeof import('fs');
+  const path = require('path') as typeof import('path');
+  const filePath = path.join(process.cwd(), 'data', 'stores', `${id}.json`);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    return true;
+  }
+  return false;
+}
+
 export async function updateStore(id: string, updates: Partial<StoreConfig>): Promise<StoreConfig | null> {
   const existing = await getStore(id);
   if (!existing) return null;

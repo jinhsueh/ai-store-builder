@@ -30,6 +30,7 @@ function StoresContent() {
   const [sendingLink, setSendingLink] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [storeStats, setStoreStats] = useState<Record<string, { views: number; sales: number }>>({});
 
   const error = searchParams.get('error');
 
@@ -67,6 +68,18 @@ function StoresContent() {
         }
         merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setStores(merged);
+        // Fetch stats for all stores
+        for (const s of merged) {
+          Promise.all([
+            fetch(`/api/store/${s.id}/views`).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`/api/store/${s.id}/orders`).then(r => r.ok ? r.json() : null).catch(() => null),
+          ]).then(([viewData, orderData]) => {
+            setStoreStats(prev => ({
+              ...prev,
+              [s.id]: { views: viewData?.views || 0, sales: orderData?.salesCount || 0 },
+            }));
+          });
+        }
       })
       .catch(() => setStores(localStores))
       .finally(() => setLoading(false));
@@ -230,36 +243,62 @@ function StoresContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stores.map(store => (
-              <Link
-                key={store.id}
-                href={`/preview/${store.id}`}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all group"
-              >
-                <div
-                  className="h-2"
-                  style={{ backgroundColor: store.primaryColor || '#1a1a1a' }}
-                />
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                        {store.storeName}
-                      </h3>
-                      <p className="text-xs text-gray-400 mt-0.5">{store.tagline}</p>
+            {stores.map(store => {
+              const stats = storeStats[store.id];
+              return (
+                <div key={store.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all group relative">
+                  <Link href={`/preview/${store.id}`}>
+                    <div
+                      className="h-2"
+                      style={{ backgroundColor: store.primaryColor || '#1a1a1a' }}
+                    />
+                    <div className="p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                            {store.storeName}
+                          </h3>
+                          <p className="text-xs text-gray-400 mt-0.5">{store.tagline}</p>
+                        </div>
+                        <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">
+                          {STYLE_LABELS[store.brandStyle] || store.brandStyle}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-400">
+                        <span>{store.products.length} products</span>
+                        <span>·</span>
+                        <span>{new Date(store.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      {stats && (stats.views > 0 || stats.sales > 0) && (
+                        <div className="flex items-center gap-3 mt-2">
+                          {stats.views > 0 && (
+                            <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{stats.views} views</span>
+                          )}
+                          {stats.sales > 0 && (
+                            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{stats.sales} sales</span>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">
-                      {STYLE_LABELS[store.brandStyle] || store.brandStyle}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-400">
-                    <span>{store.products.length} products</span>
-                    <span>·</span>
-                    <span>{new Date(store.createdAt).toLocaleDateString()}</span>
-                  </div>
+                  </Link>
+                  {store.id !== 'demo' && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`Delete "${store.storeName}"? This cannot be undone.`)) return;
+                        try { await fetch(`/api/store/${store.id}`, { method: 'DELETE' }); } catch {}
+                        localStorage.removeItem(`store_${store.id}`);
+                        setStores(prev => prev.filter(s => s.id !== store.id));
+                      }}
+                      className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 text-xs"
+                      title="Delete store"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
