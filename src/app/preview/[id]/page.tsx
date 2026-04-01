@@ -23,6 +23,7 @@ export default function PreviewPage() {
   const [emailInput, setEmailInput] = useState('');
   const [sendingLink, setSendingLink] = useState(false);
   const [linkSentInline, setLinkSentInline] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
   useEffect(() => {
     // Try localStorage first (primary storage on Vercel)
@@ -188,6 +189,26 @@ export default function PreviewPage() {
           >
             {copied ? '✓ Copied!' : '🔗 Copy Link'}
           </button>
+          <button
+            onClick={async () => {
+              if (!config) return;
+              const { nanoid } = await import('nanoid');
+              const newId = nanoid(10);
+              const cloned = { ...config, id: newId, createdAt: new Date().toISOString(), storeName: `${config.storeName} (Copy)` };
+              localStorage.setItem(`store_${newId}`, JSON.stringify(cloned));
+              try {
+                await fetch('/api/store/save', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(cloned),
+                });
+              } catch {}
+              router.push(`/preview/${newId}`);
+            }}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+          >
+            Clone
+          </button>
         </div>
       </div>
 
@@ -311,50 +332,93 @@ export default function PreviewPage() {
 
           <div className="p-5 border-b border-gray-100">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Products ({config.products.length})</p>
-            <div className="space-y-2">
+            <div className="space-y-1">
               {config.products.map(p => (
-                <div key={p.id} className="flex items-center gap-2">
-                  <label className="w-8 h-8 rounded bg-gray-100 overflow-hidden shrink-0 cursor-pointer relative group" title="Change image">
-                    {p.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.imageUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="flex items-center justify-center w-full h-full text-xs text-gray-400">+</span>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="text-white text-[10px]">Edit</span>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const form = new FormData();
-                        form.append('file', file);
-                        try {
-                          const res = await fetch('/api/upload', { method: 'POST', body: form });
-                          const data = await res.json();
-                          if (data.url) {
-                            setConfig(c => c ? { ...c, products: c.products.map(x => x.id === p.id ? { ...x, imageUrl: data.url } : x) } : c);
-                          }
-                        } catch {}
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-800 truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400">{{ USD: '$', TWD: 'NT$', EUR: '€', GBP: '£', JPY: '¥' }[config.currency || 'USD']}{p.price}</p>
-                  </div>
-                  <button
-                    onClick={() => setConfig(c => c ? { ...c, products: c.products.filter(x => x.id !== p.id) } : c)}
-                    className="text-xs text-red-400 hover:text-red-600 shrink-0"
-                    title="Remove product"
+                <div key={p.id} className="rounded-lg border border-gray-100 overflow-hidden">
+                  {/* Collapsed row */}
+                  <div
+                    className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => setEditingProductId(editingProductId === p.id ? null : p.id)}
                   >
-                    x
-                  </button>
+                    <label className="w-8 h-8 rounded bg-gray-100 overflow-hidden shrink-0 cursor-pointer relative group" title="Change image" onClick={e => e.stopPropagation()}>
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imageUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="flex items-center justify-center w-full h-full text-xs text-gray-400">+</span>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-[10px]">Edit</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const form = new FormData();
+                          form.append('file', file);
+                          try {
+                            const res = await fetch('/api/upload', { method: 'POST', body: form });
+                            const data = await res.json();
+                            if (data.url) {
+                              setConfig(c => c ? { ...c, products: c.products.map(x => x.id === p.id ? { ...x, imageUrl: data.url } : x) } : c);
+                            }
+                          } catch {}
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-800 truncate">{p.name}</p>
+                      <p className="text-xs text-gray-400">{{ USD: '$', TWD: 'NT$', EUR: '€', GBP: '£', JPY: '¥' }[config.currency || 'USD']}{p.price}</p>
+                    </div>
+                    <span className="text-[10px] text-gray-300 shrink-0">{editingProductId === p.id ? '▲' : '▼'}</span>
+                  </div>
+                  {/* Expanded edit panel */}
+                  {editingProductId === p.id && (
+                    <div className="px-2 pb-2 space-y-1.5 border-t border-gray-100 bg-gray-50">
+                      <input
+                        type="text"
+                        value={p.name}
+                        onChange={e => setConfig(c => c ? { ...c, products: c.products.map(x => x.id === p.id ? { ...x, name: e.target.value } : x) } : c)}
+                        className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 mt-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        placeholder="Product name"
+                      />
+                      <input
+                        type="number"
+                        value={p.price || ''}
+                        onChange={e => setConfig(c => c ? { ...c, products: c.products.map(x => x.id === p.id ? { ...x, price: Number(e.target.value) } : x) } : c)}
+                        className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        placeholder="Price"
+                      />
+                      <textarea
+                        value={p.description}
+                        onChange={e => setConfig(c => c ? { ...c, products: c.products.map(x => x.id === p.id ? { ...x, description: e.target.value } : x) } : c)}
+                        rows={2}
+                        className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                        placeholder="Description"
+                      />
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => setEditingProductId(null)}
+                          className="flex-1 text-xs text-indigo-600 font-medium py-1 rounded-md hover:bg-indigo-50 transition-colors"
+                        >
+                          Done
+                        </button>
+                        <button
+                          onClick={() => {
+                            setConfig(c => c ? { ...c, products: c.products.filter(x => x.id !== p.id) } : c);
+                            setEditingProductId(null);
+                          }}
+                          className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
